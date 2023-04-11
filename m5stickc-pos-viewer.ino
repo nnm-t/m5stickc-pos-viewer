@@ -5,10 +5,10 @@
 #include <LGFX_AUTODETECT.hpp>
 
 namespace {
-  constexpr const char* bluetooth_name = "Wio-POS-Viewer";
+  constexpr const char* bluetooth_name = "M5StickC-POS-Viewer";
 
-  BLEUUID service_uuid(static_cast<uint16_t>(0xF6E7));
-  BLEUUID price_characteristic_uuid(static_cast<uint16_t>(0x0001));
+  BLEUUID service_uuid("1b36fd1e-6fc4-4dc6-8c82-c13552b88789");
+  BLEUUID price_characteristic_uuid("4ee58129-a22f-41cd-bdca-4079fe0632d0");
 
   constexpr const uint32_t color_black = 0x000000U;
   constexpr const uint32_t color_red = 0xFF0000U;
