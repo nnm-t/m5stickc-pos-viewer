@@ -4,6 +4,8 @@
 #include <LovyanGFX.hpp>
 #include <LGFX_AUTODETECT.hpp>
 
+#include "joystick-hat.h"
+
 namespace {
   constexpr const char* bluetooth_name = "M5StickC-POS-Viewer";
 
@@ -19,6 +21,7 @@ namespace {
 
   LGFX lcd;
   Ticker ticker;
+  JoystickHat joystick;
 }
 
 enum class BLEPosDataType : uint8_t
@@ -131,9 +134,57 @@ namespace {
   BLEPosCharacteristicCallbacks characteristic_callbacks;
 
   uint8_t brightness = 9;
+
+  uint8_t count_timer = 0;
+  constexpr const uint8_t count_threshold = 10;
 }
 
-void onTimerTicked()
+void showLeaveSeat()
+{
+    lcd.fillRect(0, 16, 160, 64, color_black);
+
+    lcd.setTextColor(color_white, color_black);
+    lcd.setTextSize(1);
+    lcd.setTextDatum(TL_DATUM);
+    lcd.drawString("離席中", 0, 16);
+    lcd.setTextSize(0.5f, 1);
+    lcd.setTextDatum(TC_DATUM);
+    lcd.drawString("せきをはずしています", 80, 48);
+    lcd.setTextDatum(TL_DATUM);
+    lcd.setTextSize(1);
+}
+
+void showBusy()
+{
+    lcd.fillRect(0, 16, 160, 64, color_black);
+
+    lcd.setTextColor(color_white, color_black);
+    lcd.setTextSize(1);
+    lcd.setTextDatum(TL_DATUM);
+    lcd.drawString("取り込み中", 0, 16);
+    lcd.setTextSize(0.5f, 1);
+    lcd.setTextDatum(TC_DATUM);
+    lcd.drawString("しばらくお待ち下さい", 80, 48);
+    lcd.setTextDatum(TL_DATUM);
+    lcd.setTextSize(1);
+}
+
+void showHelp()
+{
+    lcd.fillRect(0, 16, 160, 64, color_black);
+
+    lcd.setTextColor(color_red, color_black);
+    lcd.setTextSize(1);
+    lcd.setTextDatum(TL_DATUM);
+    lcd.drawString("HELP", 0, 16);
+    lcd.setTextSize(0.5f, 1);
+    lcd.setTextDatum(TC_DATUM);
+    lcd.drawString("たすけてください", 80, 48);
+    lcd.setTextDatum(TL_DATUM);
+    lcd.setTextSize(1);
+}
+
+void showBatteryLevel()
 {
   float battery_voltage = M5.Axp.GetBatVoltage();
   
@@ -142,7 +193,40 @@ void onTimerTicked()
   lcd.setTextColor(color_black, color_white);
   lcd.drawString(String(battery_voltage) + "V", 160, 0);
   lcd.setFont(&fonts::lgfxJapanGothic_32);
+  lcd.setTextSize(1);
   lcd.setTextDatum(TL_DATUM);
+}
+
+void onTimerTicked()
+{
+  if (++count_timer >= count_threshold)
+  {
+    showBatteryLevel();
+    count_timer = 0;
+  }
+
+  const JoystickPosition position = joystick.read();
+
+  if (position.getY() > 63)
+  {
+    // 上 (横画面: 右)
+    showBusy();
+    return;
+  }
+
+  if (position.getY() < -63)
+  {
+    // 下 (横画面: 左)
+    showLeaveSeat();
+    return;
+  }
+
+  if (position.getIsPressed())
+  {
+    // 押し込み
+    showHelp();
+    return;
+  }
 }
 
 void setup()
@@ -152,6 +236,8 @@ void setup()
   lcd.setRotation(3);
 
   M5.Axp.ScreenBreath(brightness);
+
+  joystick.begin();
 
   lcd.fillRect(0, 0, 160, 16, color_white);
 
@@ -177,7 +263,7 @@ void setup()
   lcd.drawString("Advertising: ON", 0, 0);
   lcd.setFont(&fonts::lgfxJapanGothic_32);
 
-  ticker.attach_ms(1000, onTimerTicked);
+  ticker.attach_ms(100, onTimerTicked);
 }
 
 void loop()
